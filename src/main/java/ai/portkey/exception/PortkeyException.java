@@ -9,7 +9,7 @@ public class PortkeyException extends RuntimeException {
     private final String responseBody;
 
     public PortkeyException(int statusCode, String responseBody) {
-        super("Portkey API error " + statusCode + ": " + responseBody);
+        super("Portkey API error %d: %s".formatted(statusCode, responseBody));
         this.statusCode = statusCode;
         this.responseBody = responseBody;
     }

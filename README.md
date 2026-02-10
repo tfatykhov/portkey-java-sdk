@@ -1,11 +1,12 @@
 # Portkey Java SDK
 
-Java client for the [Portkey AI Gateway](https://portkey.ai).
+Spring Boot client for the [Portkey AI Gateway](https://portkey.ai).
 
 ## Requirements
 
-- Java 11+
-- Maven 3.6+
+- Java 25+
+- Spring Boot 3.4+
+- Maven 3.9+
 
 ## Installation
 
@@ -19,102 +20,176 @@ Add to your `pom.xml`:
 </dependency>
 ```
 
-## Quick Start
+## Spring Boot Quick Start
+
+**1. Configure** in `application.yml`:
+
+```yaml
+portkey:
+  api-key: pk-...
+  virtual-key: my-openai-virtual-key
+```
+
+**2. Inject and use:**
 
 ```java
-import ai.portkey.client.PortkeyClient;
-import ai.portkey.model.*;
+@Service
+public class ChatService {
+    private final PortkeyClient portkey;
 
-PortkeyClient client = PortkeyClient.builder()
-    .apiKey("pk-...")
-    .virtualKey("my-openai-virtual-key")
-    .build();
+    public ChatService(PortkeyClient portkey) {
+        this.portkey = portkey;
+    }
 
-ChatCompletionResponse response = client.chatCompletions().create(
+    public String chat(String prompt) {
+        var response = portkey.chatCompletions().create(
+            ChatCompletionRequest.builder()
+                .model("gpt-4o")
+                .addMessage(Message.system("You are a helpful assistant."))
+                .addMessage(Message.user(prompt))
+                .temperature(0.7)
+                .maxTokens(500)
+                .build()
+        );
+        return response.getContent();
+    }
+}
+```
+
+That's it. The SDK auto-configures a `PortkeyClient` bean when `portkey.api-key` is present.
+
+## Multimodal Messages (Vision)
+
+Send images alongside text using content parts:
+
+```java
+var response = portkey.chatCompletions().create(
     ChatCompletionRequest.builder()
         .model("gpt-4o")
-        .addMessage(Message.system("You are a helpful assistant."))
-        .addMessage(Message.user("Hello!"))
-        .temperature(0.7)
-        .maxTokens(500)
+        .addMessage(Message.user(List.of(
+            ContentPart.text("What's in this image?"),
+            ContentPart.imageUrl("https://example.com/photo.jpg", ImageContentPart.Detail.high)
+        )))
+        .build()
+);
+```
+
+Base64-encoded images are also supported:
+
+```java
+ContentPart.imageUrl("data:image/png;base64,iVBOR...")
+```
+
+## Tool Calling
+
+```java
+// 1. Define tools and send request
+var response = portkey.chatCompletions().create(
+    ChatCompletionRequest.builder()
+        .model("gpt-4o")
+        .addMessage(Message.user("What's the weather in NYC?"))
+        .tools(List.of(Map.of(
+            "type", "function",
+            "function", Map.of(
+                "name", "get_weather",
+                "parameters", Map.of("type", "object", "properties", Map.of(
+                    "city", Map.of("type", "string")
+                ))
+            )
+        )))
         .build()
 );
 
-System.out.println(response.getContent());
-System.out.println(response.getUsage());
+// 2. Process tool calls from the response
+var toolCalls = response.choices().getFirst().message().getToolCalls();
+for (var call : toolCalls) {
+    System.out.println(call.function().name());      // "get_weather"
+    System.out.println(call.function().arguments());  // {"city":"NYC"}
+}
+
+// 3. Send tool results back
+var followUp = ChatCompletionRequest.builder()
+    .model("gpt-4o")
+    .addMessage(Message.user("What's the weather in NYC?"))
+    .addMessage(Message.assistant(null, toolCalls))
+    .addMessage(Message.tool("{\"temp\": \"72F\", \"condition\": \"sunny\"}", "call_abc"))
+    .build();
 ```
 
-## Authentication
-
-Portkey supports multiple auth patterns. Configure them via the client builder:
+## Thinking (Claude models)
 
 ```java
-// Virtual key (most common)
-PortkeyClient client = PortkeyClient.builder()
-    .apiKey("pk-...")
-    .virtualKey("my-virtual-key")
+var response = portkey.chatCompletions().create(
+    ChatCompletionRequest.builder()
+        .model("claude-sonnet-4-20250514")
+        .addMessage(Message.user("Solve this step by step..."))
+        .thinking(Map.of("type", "enabled", "budget_tokens", 4096))
+        .build()
+);
+```
+
+## All Message Roles
+
+```java
+Message.system("You are helpful.")           // System instructions
+Message.developer("Coding assistant rules")  // Developer role (newer OpenAI models)
+Message.user("Hello!")                        // User text message
+Message.user(List.of(...))                    // User multimodal message
+Message.assistant("Hi there!")               // Assistant response
+Message.assistant(null, toolCalls)           // Assistant with tool calls
+Message.tool(result, callId)                 // Tool response
+
+// Named participants
+Message.user("Hello!").withName("alice")
+```
+
+## Configuration Properties
+
+```yaml
+portkey:
+  api-key: pk-...                        # Required
+  virtual-key: my-key                    # Provider virtual key
+  provider: openai                       # Direct provider auth
+  provider-auth-token: sk-...            # Provider Bearer token
+  config: my-config-id                   # Config-based routing
+  custom-host: https://my-proxy.com      # Custom provider host
+  base-url: https://api.portkey.ai/v1    # Override base URL
+  timeout: 60s                           # HTTP timeout
+  headers:                               # Extra headers
+    x-portkey-trace-id: my-trace
+```
+
+## Per-Request Headers
+
+Use the request customizer for trace IDs, metadata, and other per-request headers:
+
+```java
+portkey.chatCompletions().create(request, spec ->
+    spec.header("x-portkey-trace-id", "my-trace-123")
+        .header("x-portkey-metadata", "{\"user\":\"abc\"}")
+        .header("x-portkey-cache-force-refresh", "true")
+);
+```
+
+## Standalone (Without Spring Boot)
+
+```java
+var restClient = RestClient.builder()
+    .baseUrl("https://api.portkey.ai/v1")
+    .defaultHeader("x-portkey-api-key", "pk-...")
+    .defaultHeader("x-portkey-virtual-key", "my-key")
     .build();
 
-// Direct provider auth
-PortkeyClient client = PortkeyClient.builder()
-    .apiKey("pk-...")
-    .provider("openai")
-    .providerAuth("sk-...")
-    .build();
-
-// Config-based routing
-PortkeyClient client = PortkeyClient.builder()
-    .apiKey("pk-...")
-    .config("my-config-id")
-    .build();
+var client = new PortkeyClient(restClient);
 ```
 
 ## Self-Hosted Gateway
 
-```java
-PortkeyClient client = PortkeyClient.builder()
-    .apiKey("pk-...")
-    .virtualKey("my-key")
-    .baseUrl("http://your-gateway:8080/v1")
-    .build();
-```
-
-## Portkey Headers
-
-All Portkey-specific headers are supported:
-
-| Builder Method | Header | Purpose |
-|---------------|--------|---------|
-| `apiKey()` | `x-portkey-api-key` | Portkey API key (required) |
-| `virtualKey()` | `x-portkey-virtual-key` | Provider virtual key |
-| `provider()` | `x-portkey-provider` | Provider name |
-| `providerAuth()` | `Authorization` | Provider Bearer token |
-| `config()` | `x-portkey-config` | Config ID for routing |
-| `customHost()` | `x-portkey-custom-host` | Custom provider host |
-| `traceId()` | `x-portkey-trace-id` | Trace ID for observability |
-| `metadata()` | `x-portkey-metadata` | JSON metadata for logging |
-| `cacheNamespace()` | `x-portkey-cache-namespace` | Cache namespace |
-| `cacheForceRefresh()` | `x-portkey-cache-force-refresh` | Force cache refresh |
-
-## Request Options
-
-The `ChatCompletionRequest` builder supports all OpenAI-compatible parameters:
-
-```java
-ChatCompletionRequest.builder()
-    .model("gpt-4o")
-    .addMessage(Message.user("Explain quantum computing"))
-    .temperature(0.5)
-    .topP(0.9)
-    .maxTokens(1000)
-    .n(1)
-    .stop("\n")
-    .presencePenalty(0.1)
-    .frequencyPenalty(0.1)
-    .seed(42)
-    .user("user-123")
-    .responseFormat(Map.of("type", "json_object"))
-    .build();
+```yaml
+portkey:
+  api-key: pk-...
+  virtual-key: my-key
+  base-url: http://your-gateway:8080/v1
 ```
 
 ## Error Handling
@@ -123,12 +198,30 @@ ChatCompletionRequest.builder()
 import ai.portkey.exception.PortkeyException;
 
 try {
-    ChatCompletionResponse resp = client.chatCompletions().create(request);
+    var resp = portkey.chatCompletions().create(request);
 } catch (PortkeyException e) {
     System.err.println("Status: " + e.getStatusCode());
     System.err.println("Body: " + e.getResponseBody());
 }
 ```
+
+## Supported Portkey Headers
+
+| Property | Header | Purpose |
+|----------|--------|---------|
+| `api-key` | `x-portkey-api-key` | Portkey API key (required) |
+| `virtual-key` | `x-portkey-virtual-key` | Provider virtual key |
+| `provider` | `x-portkey-provider` | Provider name |
+| `provider-auth-token` | `Authorization: Bearer` | Provider auth |
+| `config` | `x-portkey-config` | Config ID for routing |
+| `custom-host` | `x-portkey-custom-host` | Custom provider host |
+| *per-request* | `x-portkey-trace-id` | Trace ID |
+| *per-request* | `x-portkey-span-id` | Span ID |
+| *per-request* | `x-portkey-parent-span-id` | Parent span ID |
+| *per-request* | `x-portkey-span-name` | Span name |
+| *per-request* | `x-portkey-metadata` | JSON metadata |
+| *per-request* | `x-portkey-cache-namespace` | Cache namespace |
+| *per-request* | `x-portkey-cache-force-refresh` | Force cache refresh |
 
 ## License
 
