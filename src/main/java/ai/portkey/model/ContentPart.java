@@ -37,4 +37,26 @@ public sealed interface ContentPart permits TextContentPart, ImageContentPart {
     static ImageContentPart imageUrl(String url, ImageContentPart.Detail detail) {
         return new ImageContentPart(url, detail);
     }
+
+    /**
+     * Create an image content part from base64-encoded data.
+     *
+     * <pre>{@code
+     * ContentPart.imageBase64("image/png", base64Data)
+     * // produces: "data:image/png;base64,..."
+     * }</pre>
+     *
+     * @param mediaType MIME type (e.g. "image/png", "image/jpeg", "image/webp", "image/gif")
+     * @param base64Data base64-encoded image bytes
+     */
+    static ImageContentPart imageBase64(String mediaType, String base64Data) {
+        return new ImageContentPart("data:" + mediaType + ";base64," + base64Data);
+    }
+
+    /**
+     * Create an image content part from base64-encoded data with detail level.
+     */
+    static ImageContentPart imageBase64(String mediaType, String base64Data, ImageContentPart.Detail detail) {
+        return new ImageContentPart("data:" + mediaType + ";base64," + base64Data, detail);
+    }
 }

@@ -250,4 +250,26 @@ class ModelSerializationTest {
         };
         assertEquals("text: hi", result);
     }
+
+    @Test
+    void base64ImageSerialization() throws Exception {
+        var base64Data = "iVBORw0KGgoAAAANSUhEUg==";
+        var msg = Message.user(List.of(
+                ContentPart.text("What's in this image?"),
+                ContentPart.imageBase64("image/png", base64Data)
+        ));
+
+        var json = mapper.writeValueAsString(msg);
+
+        assertTrue(json.contains("\"url\":\"data:image/png;base64,iVBORw0KGgoAAAANSUhEUg==\""));
+    }
+
+    @Test
+    void base64ImageWithDetail() throws Exception {
+        var part = ContentPart.imageBase64("image/jpeg", "abc123", ImageContentPart.Detail.low);
+        var json = mapper.writeValueAsString(part);
+
+        assertTrue(json.contains("\"url\":\"data:image/jpeg;base64,abc123\""));
+        assertTrue(json.contains("\"detail\":\"low\""));
+    }
 }
