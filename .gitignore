@@ -1,7 +1,20 @@
+# Gradle
+.gradle/
+build/
+
+# IntelliJ
 .idea/
 *.iml
+out/
+
+# Maven (legacy)
 target/
+
+# OS
+.DS_Store
+
+# Compiled
 *.class
 *.jar
+!gradle/wrapper/gradle-wrapper.jar
 *.log
-.DS_Store
