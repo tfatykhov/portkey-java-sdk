@@ -190,6 +190,30 @@ public class PortkeyClient {
         }
 
         /**
+         * Span ID for tracing. Sent as {@code x-portkey-span-id}.
+         */
+        public Builder spanId(String spanId) {
+            headers.put("x-portkey-span-id", spanId);
+            return this;
+        }
+
+        /**
+         * Parent span ID to link child spans. Sent as {@code x-portkey-parent-span-id}.
+         */
+        public Builder parentSpanId(String parentSpanId) {
+            headers.put("x-portkey-parent-span-id", parentSpanId);
+            return this;
+        }
+
+        /**
+         * Name for the span. Sent as {@code x-portkey-span-name}.
+         */
+        public Builder spanName(String spanName) {
+            headers.put("x-portkey-span-name", spanName);
+            return this;
+        }
+
+        /**
          * Metadata for logging. Sent as JSON in {@code x-portkey-metadata}.
          */
         public Builder metadata(String metadataJson) {
