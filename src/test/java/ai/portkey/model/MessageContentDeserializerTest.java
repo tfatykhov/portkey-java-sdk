@@ -36,9 +36,11 @@ class MessageContentDeserializerTest {
         assertEquals(2, parts.size());
 
         assertInstanceOf(TextContentPart.class, parts.get(0));
+        assertEquals("text", parts.get(0).type());
         assertEquals("What's in this image?", ((TextContentPart) parts.get(0)).text());
 
         assertInstanceOf(ImageContentPart.class, parts.get(1));
+        assertEquals("image_url", parts.get(1).type());
         assertEquals("https://example.com/photo.jpg",
                 ((ImageContentPart) parts.get(1)).imageUrl().url());
     }

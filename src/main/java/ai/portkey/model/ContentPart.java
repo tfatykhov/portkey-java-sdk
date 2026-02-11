@@ -14,7 +14,7 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
  * </ul>
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
-@JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
+@JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type", visible = true)
 @JsonSubTypes({
         @JsonSubTypes.Type(value = TextContentPart.class, name = "text"),
         @JsonSubTypes.Type(value = ImageContentPart.class, name = "image_url")
