@@ -11,6 +11,7 @@ A Spring Boot client library for the [Portkey AI Gateway](https://portkey.ai). P
 | Java | 25 | Records, sealed interfaces, pattern matching (all GA, no preview flags) |
 | Spring Boot | 3.5.10 | Auto-configuration, `RestClient` |
 | Gradle | 9.2.0 | Build tool, `java-library` plugin |
+| Spring AI | 1.1.2+ | Optional - `ChatClient`, `@Tool` calling, streaming, entity mapping |
 | Jackson | (managed) | JSON serialization via Spring Boot BOM |
 | JUnit 5 | (managed) | Tests with `MockRestServiceServer` |
 
@@ -23,6 +24,8 @@ src/main/java/ai/portkey/
   config/
     PortkeyAutoConfiguration.java  # Spring Boot auto-config (@ConditionalOnProperty)
     PortkeyProperties.java         # Config properties (portkey.*)
+    PortkeyHeaderInterceptor.java  # Spring AI RestClient interceptor (adds Portkey headers)
+    PortkeySpringAiAutoConfiguration.java # Spring AI ChatClient auto-config (optional)
   exception/
     PortkeyException.java       # API error with structured parsing (message, type, code)
   model/
@@ -31,9 +34,10 @@ src/main/java/ai/portkey/
     Choice.java                 # Single completion choice
     Usage.java                  # Token usage stats
     Message.java                # All roles: system, developer, user, assistant, tool
-    ContentPart.java            # Sealed interface with @JsonTypeInfo polymorphism
+    ContentPart.java            # Sealed interface (type resolution via MessageContentDeserializer)
     TextContentPart.java        # Text content record
     ImageContentPart.java       # Image URL/base64 content record with Detail enum
+    MessageContentDeserializer.java # Custom Jackson deserializer for polymorphic Message.content
     ToolCall.java               # Tool call record with Function inner record
   utils/
     ImageUtils.java             # Image conversion: resize, PNG encode, base64, ContentPart factory
@@ -41,6 +45,17 @@ src/main/java/ai/portkey/
 src/test/java/ai/portkey/
     ModelSerializationTest.java      # Jackson serialization round-trips
     PortkeyClientIntegrationTest.java # 13 tests with MockRestServiceServer
+  exception/
+    PortkeyExceptionTest.java        # 10 tests for structured error parsing edge cases
+  model/
+    MessageContentDeserializerTest.java # 8 tests for multimodal content round-trips
+    MessageTest.java                 # 13 tests for copy semantics, accessors, immutability
+    ChatCompletionRequestTest.java   # 14 tests for builder edge cases
+    ChatCompletionResponseTest.java  # 6 tests for getContent() edge cases
+  config/
+    PortkeyHeaderInterceptorTest.java    # Spring AI header interceptor tests
+    PortkeySpringAiAutoConfigurationTest.java # Spring AI auto-config tests
+    PortkeySpringAiIntegrationTest.java  # Spring AI integration with tool calling
   utils/
     ImageUtilsTest.java              # 24 tests for image conversion and resize
 ```
@@ -50,7 +65,8 @@ src/test/java/ai/portkey/
 - **Library, not app**: `bootJar` disabled, `jar` enabled. This is a dependency, not a standalone service.
 - **Immutable request objects**: `ChatCompletionRequest` uses `List.copyOf()` in builder. No mutation after `build()`.
 - **Message quasi-immutable**: Setters are package-private (`@JsonSetter`) for Jackson deserialization only. Public API is factory methods + `withName()` (returns copy).
-- **Sealed `ContentPart`**: `TextContentPart` and `ImageContentPart` with `@JsonTypeInfo`/`@JsonSubTypes` for polymorphic deserialization.
+- **Sealed `ContentPart`**: `TextContentPart` and `ImageContentPart` records. Polymorphic deserialization handled by custom `MessageContentDeserializer` (not `@JsonTypeInfo`, which conflicts with records).
+- **`@JsonIgnore` on derived accessors**: `getContentAsText()` and `getContentAsParts()` are marked `@JsonIgnore` to prevent Jackson from treating them as bean properties during deserialization.
 - **No streaming**: `stream()` intentionally removed from builder. `PortkeyClient` uses blocking `RestClient` - SSE support is future work.
 - **No built-in retry**: Users add their own resilience (Spring Retry, Resilience4j). Documented in README.
 - **Decompression bomb protection**: `ImageUtils` checks dimensions via `ImageReader` before full decode (max 8192px).
@@ -88,7 +104,7 @@ CI runs on GitHub Actions with Oracle JDK 25. Gradle needs `-Dorg.gradle.java.ho
 
 ### Add a new content part type
 1. Create new record implementing `ContentPart`
-2. Add `@JsonSubTypes.Type` entry on `ContentPart` interface
+2. Add case to `MessageContentDeserializer.deserializeContentPart()` switch
 3. Add factory method on `ContentPart`
 4. Add test cases
 
@@ -100,7 +116,6 @@ CI runs on GitHub Actions with Oracle JDK 25. Gradle needs `-Dorg.gradle.java.ho
 ## Known Limitations
 
 - **No streaming**: SSE/`Flux` support not implemented
-- **Multimodal deserialization**: `Message.content` typed as `Object`; Jackson deserializes arrays as `List<LinkedHashMap>` instead of `List<ContentPart>`. `getContentAsParts()` safely returns `null` in that case. Fix: custom `@JsonDeserializer`.
 - **No GraalVM native hints**: Would need `reflect-config.json` for records
 - **Single endpoint**: Only `/chat/completions` - no embeddings, images, audio, etc.
 
