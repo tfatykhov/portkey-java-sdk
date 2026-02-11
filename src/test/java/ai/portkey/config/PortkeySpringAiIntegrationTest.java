@@ -29,13 +29,15 @@ import static org.assertj.core.api.Assertions.assertThat;
  */
 @SpringBootTest(
         classes = PortkeySpringAiIntegrationTest.TestApp.class,
-        properties = "spring.ai.openai.api-key=not-used"
+        properties = {
+                // Prevent Spring AI's own auto-config from creating a competing OpenAiApi bean
+                "spring.ai.openai.api-key=portkey-managed"
+        }
 )
 class PortkeySpringAiIntegrationTest {
 
-    // Exclude Spring AI's own auto-config so only ours runs
-    @SpringBootApplication(exclude = {
-            org.springframework.ai.autoconfigure.openai.OpenAiAutoConfiguration.class
+    @SpringBootApplication(excludeName = {
+            "org.springframework.ai.autoconfigure.openai.OpenAiAutoConfiguration"
     })
     static class TestApp {}
 
