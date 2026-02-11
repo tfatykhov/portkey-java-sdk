@@ -242,13 +242,20 @@ class ModelSerializationTest {
 
     @Test
     void sealedInterfacePermits() {
-        // Verify sealed interface only allows expected implementations
-        var text = ContentPart.text("hi");
+        // Verify sealed interface exhaustive pattern matching
+        ContentPart text = ContentPart.text("hi");
         var result = switch (text) {
             case TextContentPart t -> "text: " + t.text();
             case ImageContentPart i -> "image: " + i.imageUrl().url();
         };
         assertEquals("text: hi", result);
+
+        ContentPart img = ContentPart.imageUrl("https://example.com/img.png");
+        var result2 = switch (img) {
+            case TextContentPart t -> "text: " + t.text();
+            case ImageContentPart i -> "image: " + i.imageUrl().url();
+        };
+        assertEquals("image: https://example.com/img.png", result2);
     }
 
     @Test
