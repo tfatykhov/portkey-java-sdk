@@ -1,8 +1,10 @@
 package ai.portkey.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonSetter;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 
 import java.util.List;
 
@@ -113,6 +115,7 @@ public class Message {
     /**
      * Content as String (returns null if content is multimodal).
      */
+    @JsonIgnore
     public String getContentAsText() {
         return content instanceof String s ? s : null;
     }
@@ -122,6 +125,7 @@ public class Message {
      * The list elements are guaranteed to be {@link ContentPart} instances
      * when constructed via factory methods.
      */
+    @JsonIgnore
     @SuppressWarnings("unchecked")
     public List<ContentPart> getContentAsParts() {
         return content instanceof List<?> list && !list.isEmpty() && list.getFirst() instanceof ContentPart
@@ -138,6 +142,7 @@ public class Message {
     @JsonSetter
     void setRole(String role) { this.role = role; }
     @JsonSetter
+    @JsonDeserialize(using = MessageContentDeserializer.class)
     void setContent(Object content) { this.content = content; }
     @JsonSetter
     void setName(String name) { this.name = name; }
