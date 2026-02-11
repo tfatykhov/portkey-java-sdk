@@ -36,7 +36,16 @@ import static org.assertj.core.api.Assertions.assertThat;
 )
 class PortkeySpringAiIntegrationTest {
 
+    // Exclude Spring AI's own OpenAI auto-configs so only our Portkey auto-config runs
     @SpringBootApplication(excludeName = {
+            "org.springframework.ai.model.openai.autoconfigure.OpenAiChatAutoConfiguration",
+            "org.springframework.ai.model.openai.autoconfigure.OpenAiAutoConfiguration",
+            "org.springframework.ai.model.openai.autoconfigure.OpenAiEmbeddingAutoConfiguration",
+            "org.springframework.ai.model.openai.autoconfigure.OpenAiImageAutoConfiguration",
+            "org.springframework.ai.model.openai.autoconfigure.OpenAiAudioSpeechAutoConfiguration",
+            "org.springframework.ai.model.openai.autoconfigure.OpenAiAudioTranscriptionAutoConfiguration",
+            "org.springframework.ai.model.openai.autoconfigure.OpenAiModerationAutoConfiguration",
+            // Older package location (pre-1.1.x)
             "org.springframework.ai.autoconfigure.openai.OpenAiAutoConfiguration"
     })
     static class TestApp {}
