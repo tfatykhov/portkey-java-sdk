@@ -350,4 +350,82 @@ try {
 - **No streaming** - `stream` parameter intentionally removed; SSE support is planned
 - **Single endpoint** - only `/v1/chat/completions`
 - **No built-in retry** - add Spring Retry or Resilience4j yourself
-- **Multimodal deserialization gap** - `Message.content` is `Object`; deserialized arrays become `List<LinkedHashMap>` not `List<ContentPart>`. Use `getContentAsParts()` (returns null safely) or `getContent()` for raw access
+
+---
+
+## Spring AI Integration (Optional)
+
+Add Spring AI for `ChatClient` with `@Tool` calling, streaming, and entity mapping - all routed through Portkey.
+
+### Additional dependency
+
+```groovy
+implementation 'org.springframework.ai:spring-ai-starter-model-openai:1.1.2'
+```
+
+The SDK auto-detects Spring AI on the classpath and configures a `ChatClient.Builder` bean that routes through Portkey.
+
+### Tool calling with @Tool
+
+```java
+class WeatherTools {
+    @Tool(description = "Get current weather for a city")
+    String getWeather(@ToolParam(description = "City name") String city) {
+        return weatherService.lookup(city);
+    }
+}
+
+@Service
+public class AssistantService {
+    private final ChatClient chatClient;
+
+    public AssistantService(ChatClient.Builder builder) {
+        this.chatClient = builder.build();
+    }
+
+    public String ask(String question) {
+        return chatClient.prompt()
+            .user(question)
+            .tools(new WeatherTools())
+            .call()
+            .content();
+    }
+}
+```
+
+### Entity mapping
+
+```java
+record MovieRecommendation(String title, int year, String reason) {}
+
+MovieRecommendation movie = chatClient.prompt()
+    .user("Recommend a sci-fi movie")
+    .call()
+    .entity(MovieRecommendation.class);
+```
+
+### Streaming
+
+```java
+Flux<String> stream = chatClient.prompt()
+    .user("Write a poem about AI")
+    .stream()
+    .content();
+```
+
+### Using both clients
+
+```java
+@Service
+public class MyService {
+    private final PortkeyClient portkey;     // Low-level, per-request headers
+    private final ChatClient chatClient;      // High-level, tool calling
+
+    public MyService(PortkeyClient portkey, ChatClient.Builder builder) {
+        this.portkey = portkey;
+        this.chatClient = builder.build();
+    }
+}
+```
+
+See [docs/spring-ai-integration.md](spring-ai-integration.md) for full details.
