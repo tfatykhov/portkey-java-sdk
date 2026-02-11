@@ -68,6 +68,7 @@ class MessageContentDeserializer extends JsonDeserializer<Object> {
         return switch (typeNode.textValue()) {
             case "text" -> mapper.treeToValue(node, TextContentPart.class);
             case "image_url" -> mapper.treeToValue(node, ImageContentPart.class);
+            case "file" -> mapper.treeToValue(node, FileContentPart.class);
             default -> {
                 ctxt.reportInputMismatch(ContentPart.class,
                         "Unknown ContentPart type: '%s'", typeNode.textValue());
