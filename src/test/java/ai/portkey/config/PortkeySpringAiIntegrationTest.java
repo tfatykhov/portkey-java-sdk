@@ -107,7 +107,8 @@ class PortkeySpringAiIntegrationTest {
         registry.add("portkey.virtual-key", () -> "vk-openai-test");
         registry.add("portkey.provider", () -> "openai");
         registry.add("portkey.config", () -> "cfg-routing-123");
-        registry.add("portkey.base-url", () -> "http://localhost:" + port + "/v1");
+        // Spring AI appends /v1/chat/completions to base-url, so no /v1 suffix here
+        registry.add("portkey.base-url", () -> "http://localhost:" + port);
     }
 
     @Autowired
