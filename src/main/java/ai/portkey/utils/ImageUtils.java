@@ -1,4 +1,7 @@
-package ai.portkey.model;
+package ai.portkey.utils;
+
+import ai.portkey.model.ContentPart;
+import ai.portkey.model.ImageContentPart;
 
 import javax.imageio.ImageIO;
 import javax.imageio.ImageReader;
@@ -68,7 +71,7 @@ public final class ImageUtils {
      * Convert image bytes to an {@link ImageContentPart} with PNG base64 data URI.
      *
      * @param imageBytes raw image bytes (JPEG, PNG, BMP, GIF, etc.)
-     * @return an image content part ready to use in a {@link Message}
+     * @return an image content part ready to use in a message
      * @throws IOException if the bytes cannot be read as an image or PNG encoding fails
      * @throws IllegalArgumentException if imageBytes is null, empty, or exceeds dimension limits
      */
@@ -81,7 +84,7 @@ public final class ImageUtils {
      *
      * @param imageBytes raw image bytes (JPEG, PNG, BMP, GIF, etc.)
      * @param detail the detail level for the image (low, high, auto)
-     * @return an image content part ready to use in a {@link Message}
+     * @return an image content part ready to use in a message
      * @throws IOException if the bytes cannot be read as an image or PNG encoding fails
      * @throws IllegalArgumentException if imageBytes is null, empty, or exceeds dimension limits
      */

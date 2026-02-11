@@ -1,5 +1,9 @@
-package ai.portkey.model;
+package ai.portkey.utils;
 
+import ai.portkey.model.ContentPart;
+import ai.portkey.model.ImageContentPart;
+import ai.portkey.model.Message;
+import ai.portkey.model.TextContentPart;
 import org.junit.jupiter.api.Test;
 
 import javax.imageio.ImageIO;
@@ -14,7 +18,6 @@ class ImageUtilsTest {
 
     private byte[] createTestImage(String format, int width, int height) throws IOException {
         var image = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
-        // Draw something so it's not blank
         var g = image.createGraphics();
         g.fillRect(0, 0, width, height);
         g.dispose();
@@ -32,7 +35,6 @@ class ImageUtilsTest {
 
         assertNotNull(base64);
         assertFalse(base64.isEmpty());
-        // Verify it decodes to valid PNG
         byte[] decoded = Base64.getDecoder().decode(base64);
         assertPngSignature(decoded);
     }
@@ -115,14 +117,12 @@ class ImageUtilsTest {
 
         ImageContentPart part = ImageUtils.toPngContentPart(original);
 
-        // Extract base64 from data URI
         String dataUri = part.imageUrl().url();
         String base64 = dataUri.substring("data:image/png;base64,".length());
         byte[] decoded = Base64.getDecoder().decode(base64);
 
         assertPngSignature(decoded);
 
-        // Verify it can be read back as an image
         BufferedImage readBack = ImageIO.read(new java.io.ByteArrayInputStream(decoded));
         assertNotNull(readBack);
         assertEquals(32, readBack.getWidth());
@@ -131,7 +131,6 @@ class ImageUtilsTest {
 
     @Test
     void toPngBase64_oversizedImage_throwsIllegalArgument() throws IOException {
-        // Create an image that exceeds MAX_DIMENSION
         var image = new BufferedImage(ImageUtils.MAX_DIMENSION + 1, 1, BufferedImage.TYPE_INT_RGB);
         var out = new ByteArrayOutputStream();
         ImageIO.write(image, "png", out);
@@ -143,7 +142,6 @@ class ImageUtilsTest {
 
     @Test
     void toPngBase64_maxDimensionImage_succeeds() throws IOException {
-        // Exactly at MAX_DIMENSION should be fine (use small height to keep test fast)
         byte[] atLimit = createTestImage("png", ImageUtils.MAX_DIMENSION, 1);
         String base64 = ImageUtils.toPngBase64(atLimit);
         assertNotNull(base64);
@@ -167,15 +165,11 @@ class ImageUtilsTest {
         assertInstanceOf(ImageContentPart.class, parts.get(1));
     }
 
-    /**
-     * Assert the first 8 bytes match the PNG file signature.
-     */
     private void assertPngSignature(byte[] data) {
         assertTrue(data.length >= 8, "Data too short for PNG");
-        // PNG magic: 137 80 78 71 13 10 26 10
         assertEquals((byte) 0x89, data[0]);
-        assertEquals((byte) 0x50, data[1]); // P
-        assertEquals((byte) 0x4E, data[2]); // N
-        assertEquals((byte) 0x47, data[3]); // G
+        assertEquals((byte) 0x50, data[1]);
+        assertEquals((byte) 0x4E, data[2]);
+        assertEquals((byte) 0x47, data[3]);
     }
 }
