@@ -49,7 +49,7 @@ class MessageContentDeserializer extends JsonDeserializer<Object> {
         var parts = new ArrayList<ContentPart>();
 
         while (p.nextToken() != JsonToken.END_ARRAY) {
-            var node = mapper.readTree(p);
+            var node = (JsonNode) mapper.readTree(p);
             parts.add(deserializeContentPart(node, mapper, ctxt));
         }
 
