@@ -8,6 +8,7 @@ import org.junit.jupiter.api.Test;
 
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.Base64;
@@ -26,6 +27,8 @@ class ImageUtilsTest {
         ImageIO.write(image, format, out);
         return out.toByteArray();
     }
+
+    // -- toPngBase64 tests --
 
     @Test
     void toPngBase64_fromJpeg() throws IOException {
@@ -88,6 +91,8 @@ class ImageUtilsTest {
         assertThrows(IOException.class, () -> ImageUtils.toPngBase64(garbage));
     }
 
+    // -- ContentPart tests --
+
     @Test
     void toPngContentPart_returnsValidContentPart() throws IOException {
         byte[] jpeg = createTestImage("jpg", 20, 20);
@@ -123,11 +128,13 @@ class ImageUtilsTest {
 
         assertPngSignature(decoded);
 
-        BufferedImage readBack = ImageIO.read(new java.io.ByteArrayInputStream(decoded));
+        BufferedImage readBack = ImageIO.read(new ByteArrayInputStream(decoded));
         assertNotNull(readBack);
         assertEquals(32, readBack.getWidth());
         assertEquals(32, readBack.getHeight());
     }
+
+    // -- Decompression bomb tests --
 
     @Test
     void toPngBase64_oversizedImage_throwsIllegalArgument() throws IOException {
@@ -147,10 +154,137 @@ class ImageUtilsTest {
         assertNotNull(base64);
     }
 
+    // -- Resize tests --
+
     @Test
-    void toPngContentPart_usableInMessage() throws IOException {
-        byte[] jpeg = createTestImage("jpg", 10, 10);
-        ImageContentPart part = ImageUtils.toPngContentPart(jpeg);
+    void resize_landscapeImage_scalesByWidth() throws IOException {
+        byte[] img = createTestImage("jpg", 4000, 3000);
+
+        byte[] resized = ImageUtils.resize(img, 800);
+
+        BufferedImage result = ImageIO.read(new ByteArrayInputStream(resized));
+        assertEquals(800, result.getWidth());
+        assertEquals(600, result.getHeight());
+        assertPngSignature(resized);
+    }
+
+    @Test
+    void resize_portraitImage_scalesByHeight() throws IOException {
+        byte[] img = createTestImage("jpg", 3000, 4000);
+
+        byte[] resized = ImageUtils.resize(img, 800);
+
+        BufferedImage result = ImageIO.read(new ByteArrayInputStream(resized));
+        assertEquals(600, result.getWidth());
+        assertEquals(800, result.getHeight());
+        assertPngSignature(resized);
+    }
+
+    @Test
+    void resize_squareImage_scalesBothDimensions() throws IOException {
+        byte[] img = createTestImage("png", 2000, 2000);
+
+        byte[] resized = ImageUtils.resize(img, 500);
+
+        BufferedImage result = ImageIO.read(new ByteArrayInputStream(resized));
+        assertEquals(500, result.getWidth());
+        assertEquals(500, result.getHeight());
+    }
+
+    @Test
+    void resize_alreadySmall_noChange() throws IOException {
+        byte[] img = createTestImage("png", 400, 300);
+
+        byte[] resized = ImageUtils.resize(img, 800);
+
+        BufferedImage result = ImageIO.read(new ByteArrayInputStream(resized));
+        assertEquals(400, result.getWidth());
+        assertEquals(300, result.getHeight());
+    }
+
+    @Test
+    void resize_exactlyAtMax_noChange() throws IOException {
+        byte[] img = createTestImage("png", 800, 600);
+
+        byte[] resized = ImageUtils.resize(img, 800);
+
+        BufferedImage result = ImageIO.read(new ByteArrayInputStream(resized));
+        assertEquals(800, result.getWidth());
+        assertEquals(600, result.getHeight());
+    }
+
+    @Test
+    void resize_wideLandscape_1920to800() throws IOException {
+        byte[] img = createTestImage("jpg", 1920, 1080);
+
+        byte[] resized = ImageUtils.resize(img, 800);
+
+        BufferedImage result = ImageIO.read(new ByteArrayInputStream(resized));
+        assertEquals(800, result.getWidth());
+        assertEquals(450, result.getHeight());
+    }
+
+    @Test
+    void resize_zeroMaxSize_throwsIllegalArgument() throws IOException {
+        byte[] img = createTestImage("png", 100, 100);
+        assertThrows(IllegalArgumentException.class, () -> ImageUtils.resize(img, 0));
+    }
+
+    @Test
+    void resize_negativeMaxSize_throwsIllegalArgument() throws IOException {
+        byte[] img = createTestImage("png", 100, 100);
+        assertThrows(IllegalArgumentException.class, () -> ImageUtils.resize(img, -1));
+    }
+
+    @Test
+    void resize_nullBytes_throwsIllegalArgument() {
+        assertThrows(IllegalArgumentException.class, () -> ImageUtils.resize(null, 800));
+    }
+
+    @Test
+    void resize_corruptBytes_throwsIOException() {
+        byte[] garbage = {0x00, 0x01, 0x02, 0x03};
+        assertThrows(IOException.class, () -> ImageUtils.resize(garbage, 800));
+    }
+
+    // -- Resize + ContentPart --
+
+    @Test
+    void toPngContentPart_withMaxSize_resizesAndConverts() throws IOException {
+        byte[] img = createTestImage("jpg", 2000, 1000);
+
+        ImageContentPart part = ImageUtils.toPngContentPart(img, 500);
+
+        assertEquals("image_url", part.type());
+        assertTrue(part.imageUrl().url().startsWith("data:image/png;base64,"));
+
+        // Decode and verify dimensions
+        String base64 = part.imageUrl().url().substring("data:image/png;base64,".length());
+        BufferedImage result = ImageIO.read(new ByteArrayInputStream(Base64.getDecoder().decode(base64)));
+        assertEquals(500, result.getWidth());
+        assertEquals(250, result.getHeight());
+    }
+
+    @Test
+    void toPngContentPart_withMaxSizeAndDetail() throws IOException {
+        byte[] img = createTestImage("jpg", 1600, 900);
+
+        ImageContentPart part = ImageUtils.toPngContentPart(img, 400, ImageContentPart.Detail.low);
+
+        assertEquals(ImageContentPart.Detail.low, part.imageUrl().detail());
+
+        String base64 = part.imageUrl().url().substring("data:image/png;base64,".length());
+        BufferedImage result = ImageIO.read(new ByteArrayInputStream(Base64.getDecoder().decode(base64)));
+        assertEquals(400, result.getWidth());
+        assertEquals(225, result.getHeight());
+    }
+
+    // -- Integration test --
+
+    @Test
+    void toPngContentPart_resized_usableInMessage() throws IOException {
+        byte[] jpeg = createTestImage("jpg", 3000, 2000);
+        ImageContentPart part = ImageUtils.toPngContentPart(jpeg, 800);
 
         Message msg = Message.user(java.util.List.of(
                 ContentPart.text("What is in this image?"),
@@ -164,6 +298,8 @@ class ImageUtilsTest {
         assertInstanceOf(TextContentPart.class, parts.get(0));
         assertInstanceOf(ImageContentPart.class, parts.get(1));
     }
+
+    // -- Helpers --
 
     private void assertPngSignature(byte[] data) {
         assertTrue(data.length >= 8, "Data too short for PNG");

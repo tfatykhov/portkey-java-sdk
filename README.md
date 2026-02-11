@@ -102,23 +102,22 @@ import ai.portkey.utils.ImageUtils;
 
 byte[] photoBytes = Files.readAllBytes(Path.of("photo.jpg"));
 
-// Get a ContentPart directly
+// Convert to ContentPart
 var part = ImageUtils.toPngContentPart(photoBytes);
 
-// With detail level
-var partHD = ImageUtils.toPngContentPart(photoBytes, ImageContentPart.Detail.high);
+// Resize to max 800px (proportional) then convert
+var resized = ImageUtils.toPngContentPart(photoBytes, 800);
 
-// Use in a message
-var msg = Message.user(List.of(
-    ContentPart.text("What's in this image?"),
-    ImageUtils.toPngContentPart(photoBytes)
-));
+// Resize with detail level
+var resizedHD = ImageUtils.toPngContentPart(photoBytes, 800, ImageContentPart.Detail.high);
 
-// Or get just the base64 string
-String base64 = ImageUtils.toPngBase64(photoBytes);
+// Get resized PNG bytes directly
+byte[] pngBytes = ImageUtils.resize(photoBytes, 800);
+// 4000x3000 -> 800x600, 1920x1080 -> 800x450, 600x400 -> 600x400 (no change)
 ```
 
 Includes decompression bomb protection (max 8192px per dimension).
+Resize preserves aspect ratio - scales proportionally by the larger dimension.
 
 ## Tool Calling
 
