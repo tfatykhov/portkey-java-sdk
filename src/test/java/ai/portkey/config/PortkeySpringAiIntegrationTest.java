@@ -27,10 +27,16 @@ import static org.assertj.core.api.Assertions.assertThat;
  * Full integration test verifying that Spring AI's ChatClient routes
  * chat completions through the Portkey gateway with correct headers.
  */
-@SpringBootTest(classes = PortkeySpringAiIntegrationTest.TestApp.class)
+@SpringBootTest(
+        classes = PortkeySpringAiIntegrationTest.TestApp.class,
+        properties = "spring.ai.openai.api-key=not-used"
+)
 class PortkeySpringAiIntegrationTest {
 
-    @SpringBootApplication
+    // Exclude Spring AI's own auto-config so only ours runs
+    @SpringBootApplication(exclude = {
+            org.springframework.ai.autoconfigure.openai.OpenAiAutoConfiguration.class
+    })
     static class TestApp {}
 
     static HttpServer mockServer;
