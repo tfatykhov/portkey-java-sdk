@@ -26,15 +26,14 @@ jobs:
       - name: Verify Java version
         run: |
           java -version
+          javac -version
           echo "JAVA_HOME=$JAVA_HOME"
 
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
 
       - name: Build & Test
-        run: ./gradlew build --no-daemon
-        env:
-          JAVA_HOME: ${{ env.JAVA_HOME }}
+        run: ./gradlew build --no-daemon -Dorg.gradle.java.home=$JAVA_HOME
 
       - name: Upload test results
         if: always()
