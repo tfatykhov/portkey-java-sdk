@@ -185,19 +185,99 @@ class PortkeySpringAiIntegrationTest {
 
     @Test
     void entityMappingThroughSpringAi() {
-        // Override mock to return structured JSON for this test
-        // The default mock returns plain text, but entity() will extract from content
+        // Override the mock response for this test to return valid JSON
+        // so entity() can parse it
+        mockServer.removeContext("/v1/chat/completions");
+        mockServer.createContext("/v1/chat/completions", exchange -> {
+            var body = new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8);
+            var headers = new java.util.HashMap<String, String>();
+            exchange.getRequestHeaders().forEach((key, values) ->
+                    headers.put(key.toLowerCase(), values.getFirst()));
+            recordedRequests.add(new RecordedRequest(
+                    exchange.getRequestMethod(), exchange.getRequestURI().getPath(), body, headers));
+
+            // Return JSON content that entity() can parse
+            String response = """
+                    {
+                      "id": "chatcmpl-entity-test",
+                      "object": "chat.completion",
+                      "created": 1700000000,
+                      "model": "gpt-4o",
+                      "choices": [{
+                        "index": 0,
+                        "finish_reason": "stop",
+                        "message": {
+                          "role": "assistant",
+                          "content": "{\\"greeting\\": \\"Hello from Portkey!\\"}"
+                        },
+                        "logprobs": null
+                      }],
+                      "usage": {
+                        "prompt_tokens": 10,
+                        "completion_tokens": 5,
+                        "total_tokens": 15
+                      }
+                    }
+                    """;
+            byte[] responseBytes = response.getBytes(StandardCharsets.UTF_8);
+            exchange.getResponseHeaders().set("Content-Type", "application/json");
+            exchange.sendResponseHeaders(200, responseBytes.length);
+            try (OutputStream os = exchange.getResponseBody()) {
+                os.write(responseBytes);
+            }
+        });
+
         recordedRequests.clear();
         var chatClient = chatClientBuilder.build();
 
-        // Spring AI's entity() parses the content string as the target type
-        // Our mock returns "Hello from Portkey!" which is a valid String entity
-        String entity = chatClient.prompt()
-                .user("Return a greeting")
+        record Greeting(String greeting) {}
+        Greeting entity = chatClient.prompt()
+                .user("Return a greeting as JSON")
                 .call()
-                .entity(String.class);
+                .entity(Greeting.class);
 
         assertThat(entity).isNotNull();
+        assertThat(entity.greeting()).isEqualTo("Hello from Portkey!");
         assertThat(recordedRequests).hasSize(1);
+
+        // Restore the default handler for other tests
+        mockServer.removeContext("/v1/chat/completions");
+        mockServer.createContext("/v1/chat/completions", exchange -> {
+            var body2 = new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8);
+            var headers2 = new java.util.HashMap<String, String>();
+            exchange.getRequestHeaders().forEach((key, values) ->
+                    headers2.put(key.toLowerCase(), values.getFirst()));
+            recordedRequests.add(new RecordedRequest(
+                    exchange.getRequestMethod(), exchange.getRequestURI().getPath(), body2, headers2));
+
+            String defaultResponse = """
+                    {
+                      "id": "chatcmpl-springai-test",
+                      "object": "chat.completion",
+                      "created": 1700000000,
+                      "model": "gpt-4o",
+                      "choices": [{
+                        "index": 0,
+                        "finish_reason": "stop",
+                        "message": {
+                          "role": "assistant",
+                          "content": "Hello from Portkey!"
+                        },
+                        "logprobs": null
+                      }],
+                      "usage": {
+                        "prompt_tokens": 10,
+                        "completion_tokens": 5,
+                        "total_tokens": 15
+                      }
+                    }
+                    """;
+            byte[] bytes = defaultResponse.getBytes(StandardCharsets.UTF_8);
+            exchange.getResponseHeaders().set("Content-Type", "application/json");
+            exchange.sendResponseHeaders(200, bytes.length);
+            try (OutputStream os = exchange.getResponseBody()) {
+                os.write(bytes);
+            }
+        });
     }
 }
