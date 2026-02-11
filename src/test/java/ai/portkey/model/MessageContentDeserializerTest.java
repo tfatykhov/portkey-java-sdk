@@ -199,6 +199,7 @@ class MessageContentDeserializerTest {
             var desc = switch (part) {
                 case TextContentPart t -> "text:" + t.text();
                 case ImageContentPart i -> "img:" + i.imageUrl().url();
+                case FileContentPart f -> "file:" + f.file().mimeType();
             };
             assertNotNull(desc);
         }

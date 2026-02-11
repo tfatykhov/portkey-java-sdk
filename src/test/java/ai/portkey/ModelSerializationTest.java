@@ -247,6 +247,7 @@ class ModelSerializationTest {
         var result = switch (text) {
             case TextContentPart t -> "text: " + t.text();
             case ImageContentPart i -> "image: " + i.imageUrl().url();
+            case FileContentPart f -> "file: " + f.file().mimeType();
         };
         assertEquals("text: hi", result);
 
@@ -254,6 +255,7 @@ class ModelSerializationTest {
         var result2 = switch (img) {
             case TextContentPart t -> "text: " + t.text();
             case ImageContentPart i -> "image: " + i.imageUrl().url();
+            case FileContentPart f -> "file: " + f.file().mimeType();
         };
         assertEquals("image: https://example.com/img.png", result2);
     }
