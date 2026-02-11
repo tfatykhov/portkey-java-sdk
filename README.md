@@ -242,7 +242,7 @@ Add Spring AI for `ChatClient` with `@Tool` calling, streaming, and entity mappi
 ### 1. Add Spring AI dependency
 
 ```groovy
-implementation 'org.springframework.ai:spring-ai-openai:1.1.2'
+implementation 'org.springframework.ai:spring-ai-starter-model-openai:1.1.2'
 ```
 
 The SDK auto-detects Spring AI on the classpath and configures everything.
