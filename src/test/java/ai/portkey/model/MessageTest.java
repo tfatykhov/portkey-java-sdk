@@ -144,7 +144,7 @@ class MessageTest {
 
     @Test
     void multimodalContentListIsImmutable() {
-        var parts = List.of(ContentPart.text("a"), ContentPart.text("b"));
+        List<ContentPart> parts = List.of(ContentPart.text("a"), ContentPart.text("b"));
         var msg = Message.user(parts);
 
         var content = msg.getContentAsParts();
