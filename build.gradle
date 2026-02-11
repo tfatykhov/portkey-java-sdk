@@ -14,12 +14,23 @@ java {
 
 repositories {
     mavenCentral()
+    maven { url 'https://repo.spring.io/milestone' }
+}
+
+dependencyManagement {
+    imports {
+        mavenBom 'org.springframework.ai:spring-ai-bom:1.1.2'
+    }
 }
 
 dependencies {
     api 'org.springframework.boot:spring-boot-starter-web'
     api 'org.springframework.boot:spring-boot-autoconfigure'
     annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor'
+
+    // Spring AI - optional, only activated when user adds spring-ai-openai to their project
+    compileOnly 'org.springframework.ai:spring-ai-openai-spring-boot-starter'
+    testImplementation 'org.springframework.ai:spring-ai-openai-spring-boot-starter'
 
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'

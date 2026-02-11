@@ -1,1 +1,2 @@
 ai.portkey.config.PortkeyAutoConfiguration
+ai.portkey.config.PortkeySpringAiAutoConfiguration
