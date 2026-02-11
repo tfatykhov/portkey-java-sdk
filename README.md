@@ -1,11 +1,15 @@
 # Portkey Java SDK
 
-Spring Boot client for the [Portkey AI Gateway](https://portkey.ai).
+Spring Boot client for the [Portkey AI Gateway](https://portkey.ai). Two levels of API:
+
+- **`PortkeyClient`** - lightweight REST client with per-request header control
+- **Spring AI `ChatClient`** - full-featured with `@Tool` calling, streaming, entity mapping (optional)
 
 ## Requirements
 
 - Java 25+
 - Spring Boot 3.5+
+- Spring AI 1.1.2+ (optional, for `ChatClient` and tool calling)
 
 ## Installation
 
@@ -229,6 +233,99 @@ portkey:
   api-key: pk-...
   virtual-key: my-key
   base-url: http://your-gateway:8080/v1
+```
+
+## Spring AI Integration (Optional)
+
+Add Spring AI for `ChatClient` with `@Tool` calling, streaming, and entity mapping - all routed through Portkey.
+
+### 1. Add Spring AI dependency
+
+```groovy
+implementation 'org.springframework.ai:spring-ai-starter-model-openai:1.1.2'
+```
+
+The SDK auto-detects Spring AI on the classpath and configures everything.
+
+### 2. Tool Calling
+
+Define tools as annotated Java methods:
+
+```java
+class WeatherTools {
+    @Tool(description = "Get current weather for a city")
+    String getWeather(@ToolParam(description = "City name") String city) {
+        // Your real implementation
+        return weatherService.lookup(city);
+    }
+
+    @Tool(description = "Convert temperature between units")
+    String convertTemp(@ToolParam(description = "Temperature value") double temp,
+                       @ToolParam(description = "From unit: celsius or fahrenheit") String from) {
+        if ("celsius".equals(from)) return "%.1f°F".formatted(temp * 9/5 + 32);
+        return "%.1f°C".formatted((temp - 32) * 5/9);
+    }
+}
+```
+
+Use them with `ChatClient`:
+
+```java
+@Service
+public class AssistantService {
+    private final ChatClient chatClient;
+
+    public AssistantService(ChatClient.Builder builder) {
+        this.chatClient = builder.build();
+    }
+
+    public String ask(String question) {
+        return chatClient.prompt()
+            .user(question)
+            .tools(new WeatherTools())
+            .call()
+            .content();
+    }
+}
+```
+
+Spring AI handles the entire tool dispatch loop automatically: sends tool definitions, receives tool calls, invokes your Java methods, sends results back, returns the final answer.
+
+### 3. Streaming
+
+```java
+Flux<String> stream = chatClient.prompt()
+    .user("Write a poem about AI")
+    .stream()
+    .content();
+```
+
+### 4. Entity Mapping
+
+```java
+record MovieRecommendation(String title, int year, String reason) {}
+
+MovieRecommendation movie = chatClient.prompt()
+    .user("Recommend a sci-fi movie")
+    .call()
+    .entity(MovieRecommendation.class);
+```
+
+### 5. Two Clients, One Config
+
+Both clients are auto-configured from the same `portkey.*` properties:
+
+```java
+@Service
+public class MyService {
+    private final PortkeyClient portkey;     // Low-level, per-request headers
+    private final ChatClient chatClient;      // High-level, tool calling
+
+    public MyService(PortkeyClient portkey, ChatClient.Builder builder) {
+        this.portkey = portkey;
+        this.chatClient = builder.build();
+    }
+}
 ```
 
 ## Error Handling

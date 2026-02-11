@@ -16,10 +16,24 @@ repositories {
     mavenCentral()
 }
 
+ext {
+    springAiVersion = '1.1.2'
+}
+
+dependencyManagement {
+    imports {
+        mavenBom "org.springframework.ai:spring-ai-bom:${springAiVersion}"
+    }
+}
+
 dependencies {
     api 'org.springframework.boot:spring-boot-starter-web'
     api 'org.springframework.boot:spring-boot-autoconfigure'
     annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor'
+
+    // Spring AI - optional, only activated when user adds spring-ai-starter-model-openai to their project
+    compileOnly "org.springframework.ai:spring-ai-starter-model-openai:${springAiVersion}"
+    testImplementation "org.springframework.ai:spring-ai-starter-model-openai:${springAiVersion}"
 
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
