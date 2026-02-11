@@ -8,9 +8,8 @@ group = 'ai.portkey'
 version = '0.1.0-SNAPSHOT'
 
 java {
-    toolchain {
-        languageVersion = JavaLanguageVersion.of(25)
-    }
+    sourceCompatibility = JavaVersion.VERSION_25
+    targetCompatibility = JavaVersion.VERSION_25
 }
 
 repositories {
@@ -35,7 +34,7 @@ tasks.named('test') {
     jvmArgs '--enable-preview'
 }
 
-// Disable Spring Boot executable jar (this is a library, not an app)
+// This is a library, not a bootable app
 tasks.named('bootJar') {
     enabled = false
 }
