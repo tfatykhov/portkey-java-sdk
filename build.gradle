@@ -14,7 +14,6 @@ java {
 
 repositories {
     mavenCentral()
-    maven { url 'https://repo.spring.io/milestone' }
 }
 
 ext {
@@ -33,8 +32,8 @@ dependencies {
     annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor'
 
     // Spring AI - optional, only activated when user adds spring-ai-openai to their project
-    compileOnly "org.springframework.ai:spring-ai-openai-spring-boot-starter:${springAiVersion}"
-    testImplementation "org.springframework.ai:spring-ai-openai-spring-boot-starter:${springAiVersion}"
+    compileOnly "org.springframework.ai:spring-ai-openai:${springAiVersion}"
+    testImplementation "org.springframework.ai:spring-ai-openai:${springAiVersion}"
 
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
