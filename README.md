@@ -90,8 +90,35 @@ var response = portkey.chatCompletions().create(
 Base64-encoded images are also supported:
 
 ```java
-ContentPart.imageUrl("data:image/png;base64,iVBOR...")
+ContentPart.imageBase64("image/png", base64String)
 ```
+
+### Image Byte Array Conversion
+
+Convert raw image bytes (JPEG, BMP, GIF, etc.) to PNG base64 content parts:
+
+```java
+import ai.portkey.utils.ImageUtils;
+
+byte[] photoBytes = Files.readAllBytes(Path.of("photo.jpg"));
+
+// Get a ContentPart directly
+var part = ImageUtils.toPngContentPart(photoBytes);
+
+// With detail level
+var partHD = ImageUtils.toPngContentPart(photoBytes, ImageContentPart.Detail.high);
+
+// Use in a message
+var msg = Message.user(List.of(
+    ContentPart.text("What's in this image?"),
+    ImageUtils.toPngContentPart(photoBytes)
+));
+
+// Or get just the base64 string
+String base64 = ImageUtils.toPngBase64(photoBytes);
+```
+
+Includes decompression bomb protection (max 8192px per dimension).
 
 ## Tool Calling
 
