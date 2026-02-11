@@ -430,6 +430,8 @@ class PortkeyClientIntegrationTest {
                 () -> client.chatCompletions().create(request));
 
         assertEquals(401, ex.getStatusCode());
+        assertEquals("Invalid API key", ex.getErrorMessage());
+        assertEquals("auth_error", ex.getErrorType());
         assertTrue(ex.getResponseBody().contains("Invalid API key"));
         mockServer.verify();
     }
@@ -450,7 +452,8 @@ class PortkeyClientIntegrationTest {
                 () -> client.chatCompletions().create(request));
 
         assertEquals(429, ex.getStatusCode());
-        assertTrue(ex.getResponseBody().contains("Rate limit"));
+        assertEquals("Rate limit exceeded", ex.getErrorMessage());
+        assertEquals("rate_limit_error", ex.getErrorType());
         mockServer.verify();
     }
 

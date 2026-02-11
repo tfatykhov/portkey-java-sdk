@@ -5,12 +5,17 @@ Spring Boot client for the [Portkey AI Gateway](https://portkey.ai).
 ## Requirements
 
 - Java 25+
-- Spring Boot 3.4+
-- Maven 3.9+
+- Spring Boot 3.5+
 
 ## Installation
 
-Add to your `pom.xml`:
+### Gradle
+
+```groovy
+implementation 'ai.portkey:portkey-java-sdk:0.1.0-SNAPSHOT'
+```
+
+### Maven
 
 ```xml
 <dependency>
@@ -18,6 +23,14 @@ Add to your `pom.xml`:
     <artifactId>portkey-java-sdk</artifactId>
     <version>0.1.0-SNAPSHOT</version>
 </dependency>
+```
+
+### Building from source
+
+```bash
+git clone https://github.com/tfatykhov/portkey-java-sdk.git
+cd portkey-java-sdk
+./gradlew build
 ```
 
 ## Spring Boot Quick Start
@@ -201,8 +214,26 @@ try {
     var resp = portkey.chatCompletions().create(request);
 } catch (PortkeyException e) {
     System.err.println("Status: " + e.getStatusCode());
-    System.err.println("Body: " + e.getResponseBody());
+    System.err.println("Message: " + e.getErrorMessage());
+    System.err.println("Type: " + e.getErrorType());
+    System.err.println("Code: " + e.getErrorCode());
+    System.err.println("Raw body: " + e.getResponseBody());
 }
+```
+
+## Retry / Resilience
+
+The SDK does not include built-in retry logic. For production use, add your own resilience layer:
+
+```java
+// Spring Retry
+@Retryable(retryFor = PortkeyException.class,
+           maxAttempts = 3, backoff = @Backoff(delay = 1000, multiplier = 2))
+public ChatCompletionResponse chat(ChatCompletionRequest request) {
+    return portkey.chatCompletions().create(request);
+}
+
+// Or Resilience4j, or your own retry loop for 429/5xx errors
 ```
 
 ## Supported Portkey Headers

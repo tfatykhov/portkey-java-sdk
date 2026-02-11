@@ -1,7 +1,8 @@
 package ai.portkey.model;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonSubTypes;
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
 
 /**
  * Content part for multimodal messages.
@@ -13,6 +14,11 @@ import com.fasterxml.jackson.annotation.JsonProperty;
  * </ul>
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
+@JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
+@JsonSubTypes({
+        @JsonSubTypes.Type(value = TextContentPart.class, name = "text"),
+        @JsonSubTypes.Type(value = ImageContentPart.class, name = "image_url")
+})
 public sealed interface ContentPart permits TextContentPart, ImageContentPart {
 
     String type();

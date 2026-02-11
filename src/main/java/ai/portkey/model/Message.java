@@ -2,12 +2,16 @@ package ai.portkey.model;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonSetter;
 
 import java.util.List;
 
 /**
  * A chat message. Supports all roles from the Portkey/OpenAI spec:
  * system, developer, user, assistant, tool, function (deprecated).
+ *
+ * <p>Instances should be treated as effectively immutable after creation.
+ * Use the static factory methods to construct messages.
  *
  * <p>For multimodal user messages, use {@link #user(List)} with {@link ContentPart}s:
  * <pre>{@code
@@ -30,16 +34,17 @@ public class Message {
     @JsonProperty("tool_call_id")
     private String toolCallId;
 
-    public Message() {}
+    /** Default constructor for Jackson deserialization only. */
+    Message() {}
 
-    public Message(String role, String content) {
+    Message(String role, String content) {
         this.role = role;
         this.content = content;
     }
 
-    public Message(String role, List<ContentPart> contentParts) {
+    Message(String role, List<ContentPart> contentParts) {
         this.role = role;
-        this.content = contentParts;
+        this.content = List.copyOf(contentParts);
     }
 
     // -- factory methods --
@@ -72,7 +77,7 @@ public class Message {
     /** Assistant message with tool calls. */
     public static Message assistant(String content, List<ToolCall> toolCalls) {
         var msg = new Message("assistant", content);
-        msg.toolCalls = toolCalls;
+        msg.toolCalls = toolCalls != null ? List.copyOf(toolCalls) : null;
         return msg;
     }
 
@@ -85,10 +90,15 @@ public class Message {
 
     // -- named participant --
 
-    /** Set optional participant name (differentiates same-role participants). */
+    /** Set optional participant name (differentiates same-role participants). Returns a new copy. */
     public Message withName(String name) {
-        this.name = name;
-        return this;
+        var copy = new Message();
+        copy.role = this.role;
+        copy.content = this.content;
+        copy.toolCalls = this.toolCalls;
+        copy.toolCallId = this.toolCallId;
+        copy.name = name;
+        return copy;
     }
 
     // -- getters --
@@ -109,21 +119,32 @@ public class Message {
 
     /**
      * Content as list of parts (returns null if content is a plain string).
+     * The list elements are guaranteed to be {@link ContentPart} instances
+     * when constructed via factory methods.
      */
     @SuppressWarnings("unchecked")
     public List<ContentPart> getContentAsParts() {
-        return content instanceof List<?> list ? (List<ContentPart>) list : null;
+        return content instanceof List<?> list && !list.isEmpty() && list.getFirst() instanceof ContentPart
+                ? (List<ContentPart>) list
+                : null;
     }
 
     public String getName() { return name; }
     public List<ToolCall> getToolCalls() { return toolCalls; }
     public String getToolCallId() { return toolCallId; }
 
-    public void setRole(String role) { this.role = role; }
-    public void setContent(Object content) { this.content = content; }
-    public void setName(String name) { this.name = name; }
-    public void setToolCalls(List<ToolCall> toolCalls) { this.toolCalls = toolCalls; }
-    public void setToolCallId(String toolCallId) { this.toolCallId = toolCallId; }
+    // -- Jackson deserialization setters (package-private) --
+
+    @JsonSetter
+    void setRole(String role) { this.role = role; }
+    @JsonSetter
+    void setContent(Object content) { this.content = content; }
+    @JsonSetter
+    void setName(String name) { this.name = name; }
+    @JsonSetter("tool_calls")
+    void setToolCalls(List<ToolCall> toolCalls) { this.toolCalls = toolCalls; }
+    @JsonSetter("tool_call_id")
+    void setToolCallId(String toolCallId) { this.toolCallId = toolCallId; }
 
     @Override
     public String toString() {

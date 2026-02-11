@@ -25,13 +25,8 @@ dependencies {
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
 
-tasks.withType(JavaCompile).configureEach {
-    options.compilerArgs.add('--enable-preview')
-}
-
 tasks.named('test') {
     useJUnitPlatform()
-    jvmArgs '--enable-preview'
 }
 
 // This is a library, not a bootable app

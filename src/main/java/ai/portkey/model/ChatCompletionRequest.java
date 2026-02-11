@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -62,7 +63,7 @@ public class ChatCompletionRequest {
 
     private Map<String, Object> thinking;
 
-    public ChatCompletionRequest() {}
+    ChatCompletionRequest() {}
 
     // -- builder --
 
@@ -78,7 +79,7 @@ public class ChatCompletionRequest {
 
         public Builder addMessage(Message msg) { messages.add(msg); return this; }
         public Builder addMessage(String role, String content) { messages.add(new Message(role, content)); return this; }
-        public Builder messages(List<Message> msgs) { messages.addAll(msgs); return this; }
+        public Builder addMessages(List<Message> msgs) { messages.addAll(msgs); return this; }
 
         public Builder temperature(double t) { req.temperature = t; return this; }
         public Builder topP(double p) { req.topP = p; return this; }
@@ -107,12 +108,15 @@ public class ChatCompletionRequest {
             if (messages.isEmpty()) {
                 throw new IllegalStateException("at least one message is required");
             }
-            req.messages = new ArrayList<>(messages);
+            req.messages = List.copyOf(messages);
+            if (req.tools != null) {
+                req.tools = List.copyOf(req.tools);
+            }
             return req;
         }
     }
 
-    // -- getters --
+    // -- getters (unmodifiable) --
 
     public String getModel() { return model; }
     public List<Message> getMessages() { return messages; }

@@ -24,7 +24,7 @@ import org.springframework.web.client.RestClient;
 public class PortkeyAutoConfiguration {
 
     @Bean
-    @ConditionalOnMissingBean
+    @ConditionalOnMissingBean(name = "portkeyRestClient")
     public RestClient portkeyRestClient(PortkeyProperties props) {
         var factory = new SimpleClientHttpRequestFactory();
         factory.setConnectTimeout(props.getTimeout());
@@ -33,7 +33,6 @@ public class PortkeyAutoConfiguration {
         var builder = RestClient.builder()
                 .baseUrl(props.getBaseUrl())
                 .requestFactory(factory)
-                .defaultHeader("Content-Type", "application/json")
                 .defaultHeader("x-portkey-api-key", props.getApiKey());
 
         if (props.getVirtualKey() != null) {
@@ -59,7 +58,7 @@ public class PortkeyAutoConfiguration {
     }
 
     @Bean
-    @ConditionalOnMissingBean
+    @ConditionalOnMissingBean(PortkeyClient.class)
     public PortkeyClient portkeyClient(RestClient portkeyRestClient) {
         return new PortkeyClient(portkeyRestClient);
     }

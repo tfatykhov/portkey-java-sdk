@@ -19,28 +19,28 @@ import java.util.Map;
 @ConfigurationProperties(prefix = "portkey")
 public class PortkeyProperties {
 
-    /** Portkey API key (required). Sent as x-portkey-api-key. */
+    /** Portkey API key (required). Sent as {@code x-portkey-api-key}. */
     private String apiKey;
 
-    /** Virtual key for provider routing. Sent as x-portkey-virtual-key. */
+    /** Virtual key for provider routing. Sent as {@code x-portkey-virtual-key}. */
     private String virtualKey;
 
-    /** Provider name for direct auth. Sent as x-portkey-provider. */
+    /** Provider name for direct auth. Sent as {@code x-portkey-provider}. */
     private String provider;
 
-    /** Provider auth token. Sent as Authorization: Bearer. */
+    /** Provider auth token. Sent as {@code Authorization: Bearer ...}. */
     private String providerAuthToken;
 
-    /** Portkey config ID. Sent as x-portkey-config. */
+    /** Portkey config ID. Sent as {@code x-portkey-config}. */
     private String config;
 
-    /** Custom host override. Sent as x-portkey-custom-host. */
+    /** Custom host override. Sent as {@code x-portkey-custom-host}. */
     private String customHost;
 
-    /** Base URL. Default: https://api.portkey.ai/v1 */
+    /** Base URL for the Portkey API. Default: {@code https://api.portkey.ai/v1}. */
     private String baseUrl = "https://api.portkey.ai/v1";
 
-    /** HTTP request timeout. Default: 60s */
+    /** HTTP request timeout (connect + read). Default: 60 seconds. */
     private Duration timeout = Duration.ofSeconds(60);
 
     /** Additional headers to send with every request. */
