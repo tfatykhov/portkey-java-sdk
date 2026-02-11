@@ -130,6 +130,26 @@ class ImageUtilsTest {
     }
 
     @Test
+    void toPngBase64_oversizedImage_throwsIllegalArgument() throws IOException {
+        // Create an image that exceeds MAX_DIMENSION
+        var image = new BufferedImage(ImageUtils.MAX_DIMENSION + 1, 1, BufferedImage.TYPE_INT_RGB);
+        var out = new ByteArrayOutputStream();
+        ImageIO.write(image, "png", out);
+        byte[] oversized = out.toByteArray();
+
+        var ex = assertThrows(IllegalArgumentException.class, () -> ImageUtils.toPngBase64(oversized));
+        assertTrue(ex.getMessage().contains("exceed maximum"));
+    }
+
+    @Test
+    void toPngBase64_maxDimensionImage_succeeds() throws IOException {
+        // Exactly at MAX_DIMENSION should be fine (use small height to keep test fast)
+        byte[] atLimit = createTestImage("png", ImageUtils.MAX_DIMENSION, 1);
+        String base64 = ImageUtils.toPngBase64(atLimit);
+        assertNotNull(base64);
+    }
+
+    @Test
     void toPngContentPart_usableInMessage() throws IOException {
         byte[] jpeg = createTestImage("jpg", 10, 10);
         ImageContentPart part = ImageUtils.toPngContentPart(jpeg);
