@@ -1,8 +1,6 @@
 package ai.portkey.model;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.annotation.JsonSubTypes;
-import com.fasterxml.jackson.annotation.JsonTypeInfo;
 
 /**
  * Content part for multimodal messages.
@@ -12,13 +10,13 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
  *   <li>{@link TextContentPart} - text content</li>
  *   <li>{@link ImageContentPart} - image URL content</li>
  * </ul>
+ *
+ * <p>Polymorphic deserialization is handled by {@link MessageContentDeserializer}
+ * which reads the {@code type} discriminator field and maps to concrete types.
+ * The {@code type()} accessor and each record's constructor ensure the field
+ * is present in both serialization and deserialization.
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
-@JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.EXISTING_PROPERTY, property = "type")
-@JsonSubTypes({
-        @JsonSubTypes.Type(value = TextContentPart.class, name = "text"),
-        @JsonSubTypes.Type(value = ImageContentPart.class, name = "image_url")
-})
 public sealed interface ContentPart permits TextContentPart, ImageContentPart {
 
     String type();
