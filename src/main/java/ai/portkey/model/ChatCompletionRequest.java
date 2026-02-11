@@ -24,10 +24,9 @@ public class ChatCompletionRequest {
     private Double topP;
 
     private Integer n;
-    private Boolean stream;
-
-    @JsonProperty("stream_options")
-    private Map<String, Object> streamOptions;
+    // NOTE: stream and stream_options intentionally excluded from builder.
+    // Streaming requires SSE handling not yet implemented in PortkeyClient.
+    // Will be added in a future release with proper Flux/Stream support.
 
     private Object stop;
 
@@ -84,8 +83,6 @@ public class ChatCompletionRequest {
         public Builder temperature(double t) { req.temperature = t; return this; }
         public Builder topP(double p) { req.topP = p; return this; }
         public Builder n(int n) { req.n = n; return this; }
-        public Builder stream(boolean s) { req.stream = s; return this; }
-        public Builder streamOptions(Map<String, Object> opts) { req.streamOptions = opts; return this; }
         public Builder stop(Object stop) { req.stop = stop; return this; }
         public Builder maxTokens(int max) { req.maxTokens = max; return this; }
         public Builder presencePenalty(double p) { req.presencePenalty = p; return this; }
@@ -123,8 +120,6 @@ public class ChatCompletionRequest {
     public Double getTemperature() { return temperature; }
     public Double getTopP() { return topP; }
     public Integer getN() { return n; }
-    public Boolean getStream() { return stream; }
-    public Map<String, Object> getStreamOptions() { return streamOptions; }
     public Object getStop() { return stop; }
     public Integer getMaxTokens() { return maxTokens; }
     public Double getPresencePenalty() { return presencePenalty; }
